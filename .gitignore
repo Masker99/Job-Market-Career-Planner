@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environments and secrets
+venv/
+.venv/
+.env
+.env.*
+!.env.example
+
+# Runtime outputs
+outputs/
+logs/
+*.log
+
+# Local private data
+data/jobs/*
+!data/jobs/.gitkeep
+data/resume/*
+!data/resume/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
