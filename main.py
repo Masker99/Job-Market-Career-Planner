@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
 from app.config import load_config
-from app.planner import generate_career_plan
+from app.debug import render_retrieval_debug_report
+from app.planner import generate_career_plan_result
 from app.resume_loader import read_resume_text
 
 
@@ -52,30 +52,47 @@ def _run_interactive(default_output: str) -> tuple[str, str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate a career plan from job market data.")
+
     parser.add_argument(
         "--profile",
         default=None,
         help="User background text. Optional when --resume-file is provided.",
     )
+
     parser.add_argument(
         "--resume-file",
         default=None,
         help="Resume text/markdown/pdf file. Relative paths are resolved from JMCP_RESUME_DIR.",
     )
+
     parser.add_argument(
         "--target-role",
         default=None,
         help="Target role or career direction. Defaults to JMCP_DEFAULT_TARGET_ROLE.",
     )
+
     parser.add_argument(
         "--output",
         default="outputs/career_plan.md",
         help="Path to save the generated career plan.",
     )
+
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Write a Markdown report showing the retrieval query, matches, and prompt context.",
+    )
+
+    parser.add_argument(
+        "--debug-output",
+        default="outputs/retrieval_debug.md",
+        help="Path to save the retrieval debug report when --debug is enabled.",
+    )
+
     args = parser.parse_args()
 
     try:
-        if len(sys.argv) == 1:
+        if not args.profile and not args.resume_file:
             profile, target_role, output = _run_interactive(args.output)
         else:
             profile = _build_profile(args.profile, args.resume_file)
@@ -86,7 +103,7 @@ def main() -> None:
 
     print("正在检索岗位数据并生成职业规划，请稍等...", flush=True)
     try:
-        plan = generate_career_plan(profile, target_role=target_role)
+        result = generate_career_plan_result(profile, target_role=target_role)
     except KeyboardInterrupt:
         raise SystemExit("已取消生成。") from None
     except Exception as exc:
@@ -94,8 +111,24 @@ def main() -> None:
 
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(plan, encoding="utf-8")
+    output_path.write_text(result.plan, encoding="utf-8")
     print(f"Saved career plan to {output_path}")
+
+    if args.debug:
+        debug_path = Path(args.debug_output)
+        debug_path.parent.mkdir(parents=True, exist_ok=True)
+        debug_report = render_retrieval_debug_report(
+            target_role=result.target_role,
+            retrieval_query=result.retrieval_query,
+            retrieved_jobs=result.retrieved_jobs,
+            retrieved_context=result.retrieved_context,
+            system_prompt=result.system_prompt,
+            user_prompt=result.user_prompt,
+            document_count=result.document_count,
+            top_k=result.top_k,
+        )
+        debug_path.write_text(debug_report, encoding="utf-8")
+        print(f"Saved retrieval debug report to {debug_path}")
 
 
 if __name__ == "__main__":

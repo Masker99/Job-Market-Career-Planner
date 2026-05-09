@@ -117,6 +117,33 @@ python main.py --resume-file my_resume.pdf --target-role "AI 应用工程师 / A
 outputs/career_plan.md
 ```
 
+### 5. 查看 RAG 检索调试报告
+
+V2 增加了 `--debug` 参数，用来观察本次 RAG 运行到底检索了什么、为什么命中、哪些上下文被放进 Prompt。
+
+```powershell
+python main.py --profile "我有 3 年 RPA 开发经验，熟悉 Python 和自动化流程。" --target-role "AI Agent 开发工程师" --debug
+```
+
+默认会额外生成：
+
+```text
+outputs/retrieval_debug.md
+```
+
+调试报告包含：
+
+- Retrieval Query：本次用于检索岗位库的查询文本
+- Retrieved Jobs：命中的岗位、分数、关键词和原文预览
+- Prompt Context Preview：最终塞给 LLM 的岗位上下文
+- System Prompt / Final User Prompt Preview：最终提示词预览
+
+也可以自定义调试报告输出位置：
+
+```powershell
+python main.py --profile "熟悉 Python、RAG 和 FastAPI" --target-role "AI 应用工程师" --debug --debug-output outputs/my_debug.md
+```
+
 ## 配置项
 
 | 环境变量 | 说明 |
@@ -158,7 +185,9 @@ outputs/career_plan.md
 
 ## 当前版本
 
-V1：关键词 RAG
+V2：可观测关键词 RAG
+
+在 V1 关键词 RAG 的基础上，V2 增加了检索调试报告，让 RAG 链路从黑盒变成可观察流程。
 
 - 从岗位 Markdown 文件加载职位信息
 - 按 `## 职位` 切分岗位片段
@@ -169,6 +198,8 @@ V1：关键词 RAG
 - 读取命令行背景或本地简历文件
 - 检测到 PDF 简历时，自动转换为 Markdown 后继续处理
 - 生成定制化转型计划
+- 使用 `--debug` 生成 `outputs/retrieval_debug.md`
+- 在调试报告中查看检索 query、命中岗位、匹配关键词、分数、上下文和 Prompt 预览
 
 ## 设计说明
 
@@ -193,7 +224,10 @@ content -> 补充上下文
 
 ## 后续升级
 
-- 增加 Embedding + 向量数据库
+- 增加 Embedding + 向量数据库，升级为语义检索
+- 增加 Hybrid Search，组合关键词检索和向量检索
+- 增加 Rerank，对召回岗位进行二次排序
+- 增加 RAG Evaluation，用固定样例评估检索质量
 - 增加岗位技能词频统计
 - 增加薪资、经验、学历维度分析
 - 增加 FastAPI 服务接口
