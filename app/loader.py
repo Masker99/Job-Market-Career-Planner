@@ -16,18 +16,24 @@ class JobDocument:
 
 def _extract_title(content: str) -> str:
     match = re.search(r"\*\*.*?岗位标题\*\*: ([^\n]+)", content)
+
     if match:
         return match.group(1).strip()
+
     fallback = re.search(r"^## 职位 \d+:?\s*(.*)$", content, flags=re.MULTILINE)
+
     if fallback and fallback.group(1).strip():
         return fallback.group(1).strip()
+
     return "Unknown title"
 
 
 def _extract_skills(content: str) -> list[str]:
     match = re.search(r"\*\*技能点\*\*: ([^\n]+)", content)
+
     if not match:
         return []
+
     return [
         item.strip()
         for item in re.split(r"[,，、/|]", match.group(1))
@@ -52,6 +58,7 @@ def load_job_documents(data_dir: Path) -> list[JobDocument]:
                 continue
 
             doc_id = f"{file_path.stem}_{index}"
+
             documents.append(
                 JobDocument(
                     id=doc_id,

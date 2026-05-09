@@ -54,7 +54,10 @@ def invoke_llm(system_prompt: str, user_prompt: str) -> str:
             HumanMessage(content=user_prompt),
         ]
     )
+
     content = str(response.content).strip()
+
     if not content:
         raise ValueError("LLM returned empty content.")
+
     return content

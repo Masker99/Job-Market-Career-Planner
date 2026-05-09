@@ -66,6 +66,7 @@ def retrieve_jobs(
         matched_terms: list[str] = []
         score = 0
         skill_text = " ".join(document.skills)
+
         for term in terms:
             query_has_term = _contains(query, term)
             title_has_term = _contains(document.title, term)
@@ -75,9 +76,11 @@ def retrieve_jobs(
             if query_has_term and title_has_term:
                 matched_terms.append(term)
                 score += 6
+
             elif query_has_term and skill_has_term:
                 matched_terms.append(term)
                 score += 5
+
             elif query_has_term and content_has_term:
                 matched_terms.append(term)
                 score += 3
@@ -93,11 +96,13 @@ def retrieve_jobs(
             scored.append(RetrievedJob(document=document, score=score, matched_terms=matched_terms))
 
     scored.sort(key=lambda item: item.score, reverse=True)
+
     return scored[:top_k]
 
 
 def format_retrieved_jobs(items: list[RetrievedJob], *, max_chars_per_job: int = 1600) -> str:
     sections: list[str] = []
+
     for index, item in enumerate(items, start=1):
         content = item.document.content[:max_chars_per_job]
         sections.append(
