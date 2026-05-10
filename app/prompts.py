@@ -28,8 +28,17 @@ def build_career_plan_prompt(
     target_role: str,
     retrieved_jobs: str,
     config: PlannerConfig,
+    market_profile: str | None = None,
 ) -> str:
     focus_keywords = "、".join(config.focus_keywords)
+    market_profile_section = ""
+    if market_profile:
+        market_profile_section = f"""
+
+岗位市场画像（基于更多候选岗位的结构化统计）：
+{market_profile}
+"""
+
     return f"""
 请基于用户背景、目标方向和检索到的岗位市场数据，生成一份定制化转型计划。
 
@@ -41,6 +50,7 @@ def build_career_plan_prompt(
 
 重点关注技能/关键词：
 {focus_keywords}
+{market_profile_section}
 
 检索到的岗位市场证据：
 {retrieved_jobs}
@@ -52,8 +62,9 @@ def build_career_plan_prompt(
 - 说明为什么这些方向和用户背景匹配。
 
 ## 2. 市场要求摘要
-- 总结检索岗位中反复出现的技能要求。
-- 必须引用岗位证据中的岗位标题、技能点或正文关键词。
+- 优先基于“岗位市场画像”总结高频技能、高频职责、经验、学历和薪资分布。
+- 再用代表性岗位证据支撑市场共性结论。
+- 必须区分“市场共性要求”和“单个岗位特殊要求”。
 
 ## 3. 用户优势
 - 说明用户已有经验如何迁移到目标岗位。

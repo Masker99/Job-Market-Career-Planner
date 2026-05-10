@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from app.config import PlannerConfig, load_config
 from app.llm import invoke_llm
 from app.loader import load_job_documents
+from app.market_profile import MarketProfile, build_market_profile, format_market_profile
 from app.prompts import build_career_plan_prompt, build_system_prompt
 from app.retriever import RetrievedJob, format_retrieved_jobs, retrieve_jobs
 
@@ -16,10 +17,14 @@ class CareerPlanResult:
     retrieval_query: str
     retrieved_jobs: list[RetrievedJob]
     retrieved_context: str
+    market_jobs: list[RetrievedJob]
+    market_profile: MarketProfile
+    market_profile_context: str
     system_prompt: str
     user_prompt: str
     document_count: int
     top_k: int
+    market_top_k: int
 
 
 def build_retrieval_query(profile: str, target_role: str, config: PlannerConfig) -> str:
@@ -39,20 +44,29 @@ def generate_career_plan_result(profile: str, target_role: str | None = None) ->
 
     retrieval_query = build_retrieval_query(profile, resolved_target_role, config)
 
-    retrieved = retrieve_jobs(
+    market_retrieved = retrieve_jobs(
         documents,
         retrieval_query,
-        top_k=config.top_k,
+        top_k=max(config.market_top_k, config.top_k),
         keywords=config.focus_keywords,
     )
 
-    if not retrieved:
+    if not market_retrieved:
         raise ValueError("No relevant job documents retrieved.")
 
+    retrieved = market_retrieved[: config.top_k]
+    market_profile = build_market_profile(market_retrieved)
+    market_profile_context = format_market_profile(market_profile)
     retrieved_context = format_retrieved_jobs(retrieved)
 
     system_prompt = build_system_prompt(config)
-    prompt = build_career_plan_prompt(profile, resolved_target_role, retrieved_context, config)
+    prompt = build_career_plan_prompt(
+        profile,
+        resolved_target_role,
+        retrieved_context,
+        config,
+        market_profile=market_profile_context,
+    )
 
     plan = invoke_llm(system_prompt, prompt)
 
@@ -62,10 +76,14 @@ def generate_career_plan_result(profile: str, target_role: str | None = None) ->
         retrieval_query=retrieval_query,
         retrieved_jobs=retrieved,
         retrieved_context=retrieved_context,
+        market_jobs=market_retrieved,
+        market_profile=market_profile,
+        market_profile_context=market_profile_context,
         system_prompt=system_prompt,
         user_prompt=prompt,
         document_count=len(documents),
         top_k=config.top_k,
+        market_top_k=max(config.market_top_k, config.top_k),
     )
 
 

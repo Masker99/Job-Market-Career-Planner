@@ -24,6 +24,7 @@ class PlannerConfig:
     job_data_dir: Path
     resume_dir: Path
     top_k: int
+    market_top_k: int
 
 
 def load_config() -> PlannerConfig:
@@ -47,4 +48,5 @@ def load_config() -> PlannerConfig:
         job_data_dir=Path(os.getenv("JMCP_JOB_DATA_DIR", "data/jobs")),
         resume_dir=Path(os.getenv("JMCP_RESUME_DIR", "data/resume")),
         top_k=int(os.getenv("JMCP_TOP_K", "8")),
+        market_top_k=int(os.getenv("JMCP_MARKET_TOP_K", "50")),
     )

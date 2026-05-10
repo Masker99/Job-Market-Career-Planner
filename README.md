@@ -10,7 +10,8 @@
 岗位数据
   -> 文档切片
   -> 关键词检索
-  -> Top-K 岗位上下文
+  -> 候选岗位市场画像
+  -> 代表性 Top-K 岗位证据
   -> Prompt 组装
   -> LLM 生成转型计划
 ```
@@ -134,6 +135,7 @@ outputs/retrieval_debug.md
 调试报告包含：
 
 - Retrieval Query：本次用于检索岗位库的查询文本
+- Market Profile：基于更多候选岗位统计出的市场画像
 - Retrieved Jobs：命中的岗位、分数、关键词和原文预览
 - Prompt Context Preview：最终塞给 LLM 的岗位上下文
 - System Prompt / Final User Prompt Preview：最终提示词预览
@@ -150,7 +152,8 @@ python main.py --profile "熟悉 Python、RAG 和 FastAPI" --target-role "AI 应
 |---|---|
 | `JMCP_JOB_DATA_DIR` | 岗位 Markdown 数据目录 |
 | `JMCP_RESUME_DIR` | 简历/个人背景资料目录 |
-| `JMCP_TOP_K` | 检索返回的岗位片段数量 |
+| `JMCP_TOP_K` | 最终放进 Prompt 的代表性岗位片段数量 |
+| `JMCP_MARKET_TOP_K` | 用于生成市场画像的候选岗位数量 |
 | `JMCP_MOCK` | 是否启用 mock 模式 |
 | `JMCP_DOMAIN` | 职业规划领域 |
 | `JMCP_ADVISOR_ROLE` | LLM 扮演的顾问角色 |
@@ -171,6 +174,8 @@ python main.py --profile "熟悉 Python、RAG 和 FastAPI" --target-role "AI 应
 │   ├── loader.py        # 加载并切分岗位 Markdown
 │   ├── resume_loader.py # 读取简历/个人背景文件
 │   ├── retriever.py     # 关键词检索
+│   ├── market_profile.py # 市场画像统计
+│   ├── debug.py         # RAG 调试报告
 │   ├── llm.py           # LLM / mock 调用
 │   ├── planner.py       # RAG 规划链路
 │   └── prompts.py       # Prompt 模板
@@ -185,21 +190,40 @@ python main.py --profile "熟悉 Python、RAG 和 FastAPI" --target-role "AI 应
 
 ## 当前版本
 
-V2：可观测关键词 RAG
+V3：Market Profile RAG
 
-在 V1 关键词 RAG 的基础上，V2 增加了检索调试报告，让 RAG 链路从黑盒变成可观察流程。
+在 V2 可观测关键词 RAG 的基础上，V3 不再只把少数 Top-K 岗位直接交给 LLM，而是先从更多候选岗位中统计市场画像，再选择代表性岗位作为证据。这个版本重点学习 RAG 里的 Context Engineering：检索到资料之后，如何把资料组织成更适合生成任务的上下文。
 
 - 从岗位 Markdown 文件加载职位信息
 - 按 `## 职位` 切分岗位片段
 - 提取岗位标题、技能点和完整描述
 - 根据目标方向、重点技能和用户背景生成检索 query
 - 对标题、技能点、正文设置不同检索权重
-- 取 Top-K 相关岗位作为上下文
+- 先召回 `JMCP_MARKET_TOP_K` 个候选岗位，用于生成市场画像
+- 统计高频技能、高频岗位标题、命中关键词、经验、学历和薪资分布
+- 再取 `JMCP_TOP_K` 个代表性岗位作为证据上下文
 - 读取命令行背景或本地简历文件
 - 检测到 PDF 简历时，自动转换为 Markdown 后继续处理
 - 生成定制化转型计划
 - 使用 `--debug` 生成 `outputs/retrieval_debug.md`
-- 在调试报告中查看检索 query、命中岗位、匹配关键词、分数、上下文和 Prompt 预览
+- 在调试报告中查看检索 query、市场画像、代表性岗位、匹配关键词、分数、上下文和 Prompt 预览
+
+### V3 学习重点：Context Engineering
+
+V1/V2 的重点是 Retrieval：如何把相关岗位找出来。V3 的重点是 Context Engineering：如何把找出来的一批岗位压缩成更有用的上下文。
+
+V3 的链路是：
+
+```text
+岗位数据
+  -> 关键词召回更多候选岗位
+  -> 统计市场画像
+  -> 选择代表性岗位证据
+  -> 市场画像 + 岗位证据 + 用户背景
+  -> LLM 生成转岗计划
+```
+
+这样生成的规划不只服务于几个高分岗位，而是更接近“面向整个市场制定学习路线”。
 
 ### V2 观察：关键词检索的局限
 
@@ -278,6 +302,7 @@ content -> 补充上下文
 
 ## 后续升级
 
+- 增加 Query Expansion，扩展目标岗位的同义词和近义词
 - 增加 Embedding + 向量数据库，升级为语义检索
 - 增加 Hybrid Search，组合关键词检索和向量检索
 - 增加 Rerank，对召回岗位进行二次排序

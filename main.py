@@ -102,6 +102,7 @@ def main() -> None:
         parser.error(str(exc))
 
     print("正在检索岗位数据并生成职业规划，请稍等...", flush=True)
+
     try:
         result = generate_career_plan_result(profile, target_role=target_role)
     except KeyboardInterrupt:
@@ -117,15 +118,19 @@ def main() -> None:
     if args.debug:
         debug_path = Path(args.debug_output)
         debug_path.parent.mkdir(parents=True, exist_ok=True)
+
         debug_report = render_retrieval_debug_report(
             target_role=result.target_role,
             retrieval_query=result.retrieval_query,
             retrieved_jobs=result.retrieved_jobs,
             retrieved_context=result.retrieved_context,
+            market_profile_context=result.market_profile_context,
+            market_job_count=len(result.market_jobs),
             system_prompt=result.system_prompt,
             user_prompt=result.user_prompt,
             document_count=result.document_count,
             top_k=result.top_k,
+            market_top_k=result.market_top_k,
         )
         debug_path.write_text(debug_report, encoding="utf-8")
         print(f"Saved retrieval debug report to {debug_path}")

@@ -19,7 +19,12 @@ def render_retrieval_debug_report(
     user_prompt: str,
     document_count: int,
     top_k: int,
+    market_profile_context: str | None = None,
+    market_job_count: int | None = None,
+    market_top_k: int | None = None,
 ) -> str:
+    market_top_k_value = market_top_k if market_top_k is not None else top_k
+    market_job_count_value = market_job_count if market_job_count is not None else len(retrieved_jobs)
     sections: list[str] = [
         "# RAG Retrieval Debug Report",
         "",
@@ -27,8 +32,10 @@ def render_retrieval_debug_report(
         "",
         f"- Target role: {target_role}",
         f"- Loaded job documents: {document_count}",
-        f"- Requested top_k: {top_k}",
-        f"- Retrieved jobs: {len(retrieved_jobs)}",
+        f"- Requested market_top_k: {market_top_k_value}",
+        f"- Market profile candidate jobs: {market_job_count_value}",
+        f"- Representative top_k: {top_k}",
+        f"- Representative jobs: {len(retrieved_jobs)}",
         "",
         "## Retrieval Query",
         "",
@@ -36,9 +43,21 @@ def render_retrieval_debug_report(
         retrieval_query,
         "```",
         "",
-        "## Retrieved Jobs",
-        "",
     ]
+
+    if market_profile_context:
+        sections.extend(
+            [
+                "## Market Profile",
+                "",
+                "```markdown",
+                _truncate(market_profile_context, 4000),
+                "```",
+                "",
+            ]
+        )
+
+    sections.extend(["## Representative Jobs", ""])
 
     for index, item in enumerate(retrieved_jobs, start=1):
         matched_terms = ", ".join(sorted(set(item.matched_terms))) or "None"
