@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 from app.config import load_config
 from app.debug import render_retrieval_debug_report
 from app.planner import generate_career_plan_result
 from app.resume_loader import read_resume_text
+
+
+DEFAULT_REPORT_VERSION = "v3"
+DEFAULT_REPORT_DIR = Path("reports")
+
+
+def _build_default_report_path(kind: str, *, version: str, timestamp: str) -> Path:
+    return DEFAULT_REPORT_DIR / f"{version}_{timestamp}_{kind}.md"
 
 
 def _resolve_resume_path(raw_path: str) -> Path:
@@ -36,7 +45,7 @@ def _ask_text(question: str, default: str | None = None) -> str:
     return input(f"{question}: ").strip()
 
 
-def _run_interactive(default_output: str) -> tuple[str, str, str]:
+def _run_interactive(default_output: str | None) -> tuple[str, str, str | None]:
     config = load_config()
 
     print("Job Market Career Planner")
@@ -73,8 +82,8 @@ def main() -> None:
 
     parser.add_argument(
         "--output",
-        default="outputs/career_plan.md",
-        help="Path to save the generated career plan.",
+        default=None,
+        help="Path to save the generated career plan. Defaults to reports/<version>_<timestamp>_career_plan.md.",
     )
 
     parser.add_argument(
@@ -85,8 +94,17 @@ def main() -> None:
 
     parser.add_argument(
         "--debug-output",
-        default="outputs/retrieval_debug.md",
-        help="Path to save the retrieval debug report when --debug is enabled.",
+        default=None,
+        help=(
+            "Path to save the retrieval debug report when --debug is enabled. "
+            "Defaults to reports/<version>_<timestamp>_retrieval_debug.md."
+        ),
+    )
+
+    parser.add_argument(
+        "--report-version",
+        default=DEFAULT_REPORT_VERSION,
+        help="Version prefix used for default timestamped report filenames.",
     )
 
     args = parser.parse_args()
@@ -100,6 +118,22 @@ def main() -> None:
             output = args.output
     except (FileNotFoundError, ValueError) as exc:
         parser.error(str(exc))
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output = output or str(
+        _build_default_report_path(
+            "career_plan",
+            version=args.report_version,
+            timestamp=timestamp,
+        )
+    )
+    debug_output = args.debug_output or str(
+        _build_default_report_path(
+            "retrieval_debug",
+            version=args.report_version,
+            timestamp=timestamp,
+        )
+    )
 
     print("正在检索岗位数据并生成职业规划，请稍等...", flush=True)
 
@@ -116,7 +150,7 @@ def main() -> None:
     print(f"Saved career plan to {output_path}")
 
     if args.debug:
-        debug_path = Path(args.debug_output)
+        debug_path = Path(debug_output)
         debug_path.parent.mkdir(parents=True, exist_ok=True)
 
         debug_report = render_retrieval_debug_report(
