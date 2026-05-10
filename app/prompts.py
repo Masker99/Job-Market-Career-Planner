@@ -3,6 +3,52 @@ from __future__ import annotations
 from app.config import PlannerConfig
 
 
+def build_query_expansion_prompt(
+    profile: str,
+    target_role: str,
+    config: PlannerConfig,
+) -> tuple[str, str]:
+    system_prompt = """
+你是 RAG 系统中的检索查询改写器，负责把用户的目标岗位改写成更适合检索招聘岗位数据的表达。
+你只能返回严格 JSON，不要输出 Markdown、解释、职业建议或学习计划。
+扩展词必须贴近目标岗位，并且要有助于检索招聘 JD。
+除非目标岗位明确需要，否则不要扩展到排除方向或明显不同的职业方向。
+""".strip()
+
+    user_prompt = f"""
+原始目标岗位：
+{target_role}
+
+用户背景：
+{profile[:1200]}
+
+当前重点关键词：
+{", ".join(config.focus_keywords)}
+
+默认不优先方向：
+{", ".join(config.avoid_directions) if config.avoid_directions else "None"}
+
+请只生成包含以下字段的 JSON：
+{{
+  "expanded_roles": ["与目标岗位相近的岗位名称或市场常见表达"],
+  "related_skills": ["有助于检索相关岗位的技能词"],
+  "related_tools": ["有助于检索相关岗位的工具、框架或平台"],
+  "excluded_terms": ["不应该优先检索的方向或词"],
+  "final_query_terms": ["去重后的最终检索词"]
+}}
+
+规则：
+- 每个列表都要简洁，不要堆砌无关词。
+- expanded_roles 应该优先使用中文招聘市场中常见的岗位表达。
+- related_skills 和 related_tools 应该服务于岗位检索，不要写学习建议。
+- 不要扩展到明显不同的职业路径。
+- 除非目标岗位明确要求，否则不要包含模型预训练、算法研究、底层推理优化等方向。
+- final_query_terms 最多 {config.query_expansion_max_terms} 个。
+""".strip()
+
+    return system_prompt, user_prompt
+
+
 def build_system_prompt(config: PlannerConfig) -> str:
     avoid = "、".join(config.avoid_directions) if config.avoid_directions else "无"
     return f"""

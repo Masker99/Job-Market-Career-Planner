@@ -25,6 +25,8 @@ class PlannerConfig:
     resume_dir: Path
     top_k: int
     market_top_k: int
+    query_expansion_mode: str
+    query_expansion_max_terms: int
 
 
 def load_config() -> PlannerConfig:
@@ -49,4 +51,6 @@ def load_config() -> PlannerConfig:
         resume_dir=Path(os.getenv("JMCP_RESUME_DIR", "data/resume")),
         top_k=int(os.getenv("JMCP_TOP_K", "8")),
         market_top_k=int(os.getenv("JMCP_MARKET_TOP_K", "50")),
+        query_expansion_mode=os.getenv("JMCP_QUERY_EXPANSION_MODE", "llm"),
+        query_expansion_max_terms=int(os.getenv("JMCP_QUERY_EXPANSION_MAX_TERMS", "30")),
     )

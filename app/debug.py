@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.query_expander import QueryExpansion
 from app.retriever import RetrievedJob
 
 
@@ -7,6 +8,12 @@ def _truncate(text: str, max_chars: int) -> str:
     if len(text) <= max_chars:
         return text
     return text[:max_chars].rstrip() + "\n\n...[truncated]"
+
+
+def _format_list(items: list[str]) -> list[str]:
+    if not items:
+        return ["- None"]
+    return [f"- {item}" for item in items]
 
 
 def render_retrieval_debug_report(
@@ -19,6 +26,7 @@ def render_retrieval_debug_report(
     user_prompt: str,
     document_count: int,
     top_k: int,
+    query_expansion: QueryExpansion | None = None,
     market_profile_context: str | None = None,
     market_job_count: int | None = None,
     market_top_k: int | None = None,
@@ -44,6 +52,33 @@ def render_retrieval_debug_report(
         "```",
         "",
     ]
+
+    if query_expansion:
+        sections.extend(
+            [
+                "## Query Expansion",
+                "",
+                f"- Mode: {query_expansion.mode}",
+                f"- Source: {query_expansion.source}",
+                f"- Original target role: {query_expansion.original_target_role}",
+                "",
+                "### Expanded Roles",
+                *_format_list(query_expansion.expanded_roles),
+                "",
+                "### Related Skills",
+                *_format_list(query_expansion.related_skills),
+                "",
+                "### Related Tools",
+                *_format_list(query_expansion.related_tools),
+                "",
+                "### Excluded Terms",
+                *_format_list(query_expansion.excluded_terms),
+                "",
+                "### Final Query Terms",
+                *_format_list(query_expansion.final_query_terms),
+                "",
+            ]
+        )
 
     if market_profile_context:
         sections.extend(
