@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.query_expander import QueryExpansion
 from app.retriever import RetrievedJob
+from app.vector_store import VectorSearchStats
 
 
 def _truncate(text: str, max_chars: int) -> str:
@@ -27,6 +28,8 @@ def render_retrieval_debug_report(
     document_count: int,
     top_k: int,
     query_expansion: QueryExpansion | None = None,
+    retrieval_mode: str = "keyword",
+    vector_search_stats: VectorSearchStats | None = None,
     market_profile_context: str | None = None,
     market_job_count: int | None = None,
     market_top_k: int | None = None,
@@ -40,6 +43,7 @@ def render_retrieval_debug_report(
         "",
         f"- Target role: {target_role}",
         f"- Loaded job documents: {document_count}",
+        f"- Retrieval mode: {retrieval_mode}",
         f"- Requested market_top_k: {market_top_k_value}",
         f"- Market profile candidate jobs: {market_job_count_value}",
         f"- Representative top_k: {top_k}",
@@ -76,6 +80,20 @@ def render_retrieval_debug_report(
                 "",
                 "### Final Query Terms",
                 *_format_list(query_expansion.final_query_terms),
+                "",
+            ]
+        )
+
+    if vector_search_stats:
+        sections.extend(
+            [
+                "## Vector Search",
+                "",
+                f"- Embedding provider: {vector_search_stats.provider}",
+                f"- Index path: `{vector_search_stats.index_path}`",
+                f"- Indexed documents: {vector_search_stats.indexed_documents}",
+                f"- Query vector dimension: {vector_search_stats.query_dimension}",
+                f"- Top similarity: {vector_search_stats.top_similarity:.4f}",
                 "",
             ]
         )

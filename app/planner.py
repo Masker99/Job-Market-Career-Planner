@@ -9,6 +9,7 @@ from app.market_profile import MarketProfile, build_market_profile, format_marke
 from app.prompts import build_career_plan_prompt, build_system_prompt
 from app.query_expander import QueryExpansion, expand_retrieval_query
 from app.retriever import RetrievedJob, format_retrieved_jobs, retrieve_jobs
+from app.vector_store import VectorSearchStats, search_vector_index
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,8 @@ class CareerPlanResult:
     document_count: int
     top_k: int
     market_top_k: int
+    retrieval_mode: str
+    vector_search_stats: VectorSearchStats | None
 
 
 def build_retrieval_query(
@@ -60,12 +63,25 @@ def generate_career_plan_result(profile: str, target_role: str | None = None) ->
     retrieval_query = build_retrieval_query(profile, resolved_target_role, config, query_expansion)
     retrieval_keywords = _build_retrieval_keywords(config, query_expansion)
 
-    market_retrieved = retrieve_jobs(
-        documents,
-        retrieval_query,
-        top_k=max(config.market_top_k, config.top_k),
-        keywords=retrieval_keywords,
-    )
+    vector_search_stats: VectorSearchStats | None = None
+    retrieval_mode = config.retrieval_mode.strip().lower()
+
+    if retrieval_mode == "vector":
+        market_retrieved, vector_search_stats = search_vector_index(
+            documents,
+            retrieval_query,
+            top_k=max(config.market_top_k, config.top_k),
+            config=config,
+            query_terms=retrieval_keywords,
+        )
+    else:
+        retrieval_mode = "keyword"
+        market_retrieved = retrieve_jobs(
+            documents,
+            retrieval_query,
+            top_k=max(config.market_top_k, config.top_k),
+            keywords=retrieval_keywords,
+        )
 
     if not market_retrieved:
         raise ValueError("No relevant job documents retrieved.")
@@ -101,6 +117,8 @@ def generate_career_plan_result(profile: str, target_role: str | None = None) ->
         document_count=len(documents),
         top_k=config.top_k,
         market_top_k=max(config.market_top_k, config.top_k),
+        retrieval_mode=retrieval_mode,
+        vector_search_stats=vector_search_stats,
     )
 
 

@@ -27,6 +27,10 @@ class PlannerConfig:
     market_top_k: int
     query_expansion_mode: str
     query_expansion_max_terms: int
+    retrieval_mode: str
+    embedding_provider: str
+    embedding_dimension: int
+    vector_index_path: Path
 
 
 def load_config() -> PlannerConfig:
@@ -53,4 +57,8 @@ def load_config() -> PlannerConfig:
         market_top_k=int(os.getenv("JMCP_MARKET_TOP_K", "50")),
         query_expansion_mode=os.getenv("JMCP_QUERY_EXPANSION_MODE", "llm"),
         query_expansion_max_terms=int(os.getenv("JMCP_QUERY_EXPANSION_MAX_TERMS", "30")),
+        retrieval_mode=os.getenv("JMCP_RETRIEVAL_MODE", "vector"),
+        embedding_provider=os.getenv("JMCP_EMBEDDING_PROVIDER", "hash"),
+        embedding_dimension=int(os.getenv("JMCP_EMBEDDING_DIMENSION", "384")),
+        vector_index_path=Path(os.getenv("JMCP_VECTOR_INDEX_PATH", "data/vector_index/jobs_embeddings.jsonl")),
     )

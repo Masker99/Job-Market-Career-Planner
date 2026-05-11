@@ -22,6 +22,7 @@ data/jobs/*
 !data/jobs/.gitkeep
 data/resume/*
 !data/resume/.gitkeep
+data/vector_index/
 
 # IDE / OS
 .vscode/

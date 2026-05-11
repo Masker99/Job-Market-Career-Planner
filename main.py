@@ -16,7 +16,7 @@ from app.reporting import (
 from app.resume_loader import read_resume_text
 
 
-DEFAULT_REPORT_VERSION = "v4"
+DEFAULT_REPORT_VERSION = "v5"
 DEFAULT_OUTPUT_DIR = Path("outputs")
 DEFAULT_REPORT_DIR = Path("reports")
 
@@ -203,6 +203,8 @@ def main() -> None:
             document_count=result.document_count,
             top_k=result.top_k,
             query_expansion=result.query_expansion,
+            retrieval_mode=result.retrieval_mode,
+            vector_search_stats=result.vector_search_stats,
             market_top_k=result.market_top_k,
         )
         _write_text(debug_path, debug_report)
